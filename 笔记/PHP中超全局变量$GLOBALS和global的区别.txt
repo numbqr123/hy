@@ -1,0 +1,115 @@
+一、超全局变量$GLOBALS
+
+PHP超全局变量有很多，如下的都属于超全局变量(Superglobal)：
+
+$GLOBALS，$_SERVER，$_GET，$_POST，$_FILES，$_COOKIE，$_SESSION，$_REQUEST，$_ENV。
+
+官方说明：
+
+    $GLOBALS — 引用全局作用域中可用的全部变量。
+    一个包含了全部变量的全局组合数组。变量的名字就是数组的键。
+    即出现过的全局变量，就可以通过$GLOBALS这个数组取得。
+    PHP生命周期中，定义在函数体外部的所谓全局变量，函数内部是不能直接获得的。
+
+复制代码
+
+$foo = "Example content";
+test();
+function test() {
+    $foo = "local variable";
+    echo '$foo in current scope: ' . $foo . "<br>";
+    echo '$foo in global scope: ' . $GLOBALS["foo"] . "<br>";
+}
+
+复制代码
+
+如上的例子，要访问外部的$foo必须使用 $GLOBALS数组。对于通过include文件进来的外部全局变量也适用。
+
+php中global也有这样的功能，它和$GLOBALS的区别在于：
+
+    global在函数产生一个指向函数外部变量的别名变量，而不是真正的函数外部变量。
+    $GLOBALS[]确确实实调用是外部的变量，函数内外会始终保持一致。
+
+对于类中的成员变量，类中函数必须使用$this->的方式访问，不能用$GLOBALS方式：
+
+global的作用是定义全局变量，但是这个全局变量不是应用于整个网站，而是应用于当前页面，包括include或require的所有文件。
+
+
+二、实例讲解
+复制代码
+
+function t1() {
+    global $var1, $var2;
+    $var2 = &$var1;
+}
+function t2() {
+    $GLOBALS['var3'] = &$GLOBALS['var1'];
+}
+$var1 = 5;
+$var2 = $var3 = 0;
+t1();
+print $var2 ."\n";
+t2();
+print $var3 ."\n";
+
+复制代码
+
+执行结果为:
+0
+5
+
+为什么不是2个5而是1个0和1个5呢?
+再修改一下例子：
+复制代码
+
+function t1() {
+    global $var1;
+    $var1 = 2;
+    unset($var1);
+}
+function t2() {
+    $GLOBALS['var1'] = 3;
+    unset($GLOBALS['var1']);
+}
+$var1 = 1;
+t1();
+print $var1 . "\n";
+t2();
+print $var1 . "\n";
+
+复制代码
+
+执行结果只输入一个2;
+
+1、$GLOBALS是由所有已定义全局变量自动形成的数组。变量名就是该数组的索引。即$GLOBALS['var1']与函数外部的变量$var1是同一个变量，所以将$GLOBALS['var1'] 删除后，该变量已不存在，所有无法输出了。
+注：$GLOBALS是自动全局变量。这意味着它在所有的脚本中都有效。在函数或方法中不需要使用 global $GLOBALS; 来访问它。
+
+2、"global $var1;"是产生了函数外部$var1的别名变量"$var1"，它不是真正的函数外部变量，他只存在于函数的内部，所以即使在函数内将别名变量删除也不会影响外面的变量，但是可以修改函数外部变量的值。
+
+或许有的人总想知道这个或那个的区别：在php程序，包括其他程序的学习中，自己动手实验，根据结果加上的思考，有的时候比上网查找可能会来得更快一些，更准确一些。下面我们来讲一下，php在全局范围内访问变量要怎么办？
+例一：global定义全局变量。
+复制代码
+
+function test_global() {
+    global $var1;
+    $var1 = 'ok';
+    unset($var1);
+}
+test_global();
+$var2 = &$var1;
+unset($var1);
+echo $var2;
+
+复制代码
+
+先不给出结果，自己运行一下程序。函数内部的变量可以访问到了。从结果可以看出，unset只是断开变量名与变量值连接，并没有马上销毁变量的值，而且在函数内部定义的全局变量，实际在外部只是使用了函数内部的别名而已，所以我们在外面依然可以访问$var1。
+
+例二：$GLOBALS在函数内部访问函数外面定义的变量。
+
+$waibu = 'out';
+function ff() {
+    echo $GLOBALS['waibu'];
+}
+ff();
+
+直接在函数内部使用$waibu是会出错的。
