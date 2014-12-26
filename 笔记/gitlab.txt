@@ -1,0 +1,224 @@
+GitLab 是 Ruby on Rails 開發的應用程式, 操作使用非常類似 GitHub, 可以通過 Web 存取 公開 或 私人的 Project.
+
+GitLab 介紹、測試
+
+    GitLab: Self Hosted Git Management Application
+    GitLab Blog
+    Gitlab - 維基百科，自由的百科全書
+    GitLab Demo
+    GitLab 使用介紹 (PDF)
+
+將 GitLab 架設於 Debian Wheezy
+
+GitLab 系統需求
+
+硬體需求(摘錄自此篇: Gitlabhq doc install requirements):
+
+    CPU
+        1 core works for under 100 users but the responsiveness might suffer
+        2 cores is the recommended number of cores and supports up to 100 users
+        4 cores supports about 1,000 users
+        8 cores supports up to 10,000 users
+    Memory
+        1GB supports up to 100 users if you do not have individual repo's over 250MB
+        2GB is the recommended memory size and supports up to 1,000 users
+        4GB supports up to 10,000 users
+
+系統安裝(Gitlabhq doc install installation.md)步驟如下:
+
+系統、套件版本需求:
+
+    Ubuntu/Debian
+    python 2.5+ (3.x is not supported at the moment)
+    ruby 1.9.3+
+    git 1.7.10+
+    redis 2.0+
+    MySQL or PostgreSQL
+
+基本環境安裝步驟
+
+    sudo apt-get install -y build-essential zlib1g-dev libyaml-dev libssl-dev libgdbm-dev libreadline-dev libncurses5-dev libffi-dev curl openssh-server redis-server checkinstall libxml2-dev libxslt-dev libcurl4-openssl-dev libicu-dev logrotate
+
+Python
+
+    python --version # 如果是 python 3, 要安裝 python 2
+    sudo apt-get install python2.7
+    python2 --version # 要確認 python2 存在, 不存在執行下述命令
+    sudo ln -s /usr/bin/python /usr/bin/python2
+    sudo apt-get install -y python-docutils # For reStructuredText markup language support install required package
+
+Git
+
+    sudo apt-get install -y git-core
+    git --version # 需要 git 1.7.10 以上, < 1.7.10 的話, 需要手動安裝新版的 Git.
+
+Postfix
+
+    sudo apt-get install -y postfix # 若之後需要寄通知信的話, 需要安裝 postfix
+
+Ruby、Gem
+
+    # Debian wheezy 的 ruby 是 1.9.1, 不夠新, 手動 Compile
+    mkdir /tmp/ruby && cd /tmp/ruby
+    curl --progress ftp://ftp.ruby-lang.org/pub/ruby/2.0/ruby-2.0.0-p247.tar.gz | tar xz
+    cd ruby-2.0.0-p247
+    ./configure --disable-install-rdoc
+    make
+    sudo make install
+    sudo gem install bundler --no-ri --no-rdoc # Install the Bundler Gem
+
+系統設定
+
+    sudo adduser --disabled-login --gecos 'GitLab' git # 增加系統使用者
+
+GitLab shell
+
+    cd /home/git
+    sudo -u git -H git clone https://github.com/gitlabhq/gitlab-shell.git
+    cd gitlab-shell
+    sudo -u git -H git checkout v1.7.4 # 切到正確版本
+    sudo -u git -H cp config.yml.example config.yml
+    sudo -u git -H editor config.yml # 主要修改 gitlab_url, 改成自己要的 http://domain.com/
+    sudo -u git -H ./bin/install # 會依照 config.yml 設定、建目錄、key 等
+
+Database
+
+    GitLab Database 安裝說明(可參考此篇: gitlabhq doc install databases.md)
+    sudo apt-get install -y mysql-server mysql-client libmysqlclient-dev
+    mysql -u root -p
+        mysql> CREATE USER 'gitlab'@'localhost' IDENTIFIED BY 'GITLAB_PASSWORD';
+        mysql> CREATE DATABASE IF NOT EXISTS `gitlabhq_production` DEFAULT CHARACTER SET `utf8` COLLATE `utf8_unicode_ci`;
+        mysql> GRANT SELECT, LOCK TABLES, INSERT, UPDATE, DELETE, CREATE, DROP, INDEX, ALTER ON `gitlabhq_production`.* TO 'gitlab'@'localhost';
+    # 使用 gitlab 帳號, 測試 MySQL 連線狀況
+    sudo -u git -H mysql -u gitlab -p -D gitlabhq_production # 輸入密碼看有沒有進入 mysql>
+
+GitLab 系統安裝
+
+    # 用 Git 帳號來 安裝 GitLab 系統
+    cd /home/git
+    sudo -u git -H git clone https://github.com/gitlabhq/gitlabhq.git gitlab # Clone the Source, Clone GitLab repository
+    cd /home/git/gitlab
+    sudo -u git -H git checkout 6-2-stable # 切換到 6-2 stable 版本(git branch -a, git branch -r), 列表可見: https://github.com/gitlabhq/gitlabhq/branches
+
+GitLab 設定
+
+以下 *editor 的命令, 偷懶直接 sudo vim 編輯也可以.
+
+    cd /home/git/gitlab
+    sudo -u git -H cp config/gitlab.yml.example config/gitlab.yml
+    sudo -u git -H editor config/gitlab.yml # 將 localhost 都修改成你的 Domain.
+    sudo chown -R git log/
+    sudo chown -R git tmp/
+    sudo chmod -R u+rwX  log/
+    sudo chmod -R u+rwX  tmp/
+    sudo -u git -H mkdir /home/git/gitlab-satellites
+    sudo -u git -H mkdir tmp/pids/
+    sudo -u git -H mkdir tmp/sockets/
+    sudo chmod -R u+rwX  tmp/pids/
+    sudo chmod -R u+rwX  tmp/sockets/
+    sudo -u git -H mkdir public/uploads
+    sudo chmod -R u+rwX  public/uploads
+    sudo -u git -H cp config/unicorn.rb.example config/unicorn.rb
+    sudo -u git -H editor config/unicorn.rb # 如果有 2G Ram, 就將設定檔得 workers 改為 3,不然就不用動
+    sudo -u git -H cp config/initializers/rack_attack.rb.example config/initializers/rack_attack.rb
+    sudo -u git -H editor config/application.rb # 將 config.middleware.use Rack::Attack 打開, 前面 "#" 移除
+    # 設定 git 帳號得 username、Email.. 等資料
+    sudo -u git -H git config --global user.name "GitLab"
+    sudo -u git -H git config --global user.email "gitlab@localhost"
+    sudo -u git -H git config --global core.autocrlf input
+
+GitLab DB 設定
+
+    sudo -u git cp config/database.yml.mysql config/database.yml
+    sudo -u git -H editor config/database.yml # 修改 MySQL 設定的帳號、密碼, 設定 production 就可以了.
+
+安裝 Gems
+
+    cd /home/git/gitlab
+    sudo gem install charlock_holmes --version '0.6.9.4' # Character encoding detecting library for Ruby using ICU
+    sudo -u git -H bundle install --deployment --without development test postgres aws # 安裝相關 Ruby Gems Package MySQL 執行此行, PostgreSQL 是把 "without postgres" 改成 "without mysql"
+    若遇到下述錯誤訊息 (使用 Percona MySQL)
+    An error occurred while installing mysql2 (0.3.11), and Bundler cannot continue.
+    Make sure that `gem install mysql2 -v '0.3.11'` succeeds before bundling.
+    解法: sudo apt-get install libmysqlclient18.1-dev # Percona 需安裝此 Library.
+    註: Gemfile.lock 可看到目前取用 mysql2 得版本是 0.3.11, 新版可見 https://rubygems.org/gems/mysql2
+    再來重新執行上述命令即可安裝完成: sudo -u git -H bundle install --deployment --without development test postgres aws
+    sudo -u git -H bundle exec rake gitlab:setup RAILS_ENV=production # 初始化 DB, 並將 Rails 設定到 Production mode, 輸入 'yes' 建立 database
+    產生 GitLab 預設帳號、密碼 如下:
+        login.........admin@local.host
+        password......5iveL!fe
+
+設定開機自動啟動
+
+    sudo cp lib/support/init.d/gitlab /etc/init.d/gitlab
+    sudo chmod +x /etc/init.d/gitlab
+    sudo update-rc.d gitlab defaults 21
+
+設定 Logrotate
+
+    sudo cp lib/support/logrotate/gitlab /etc/logrotate.d/gitlab
+
+檢查 GitLab 環境設定狀態
+
+    sudo -u git -H bundle exec rake gitlab:env:info RAILS_ENV=production
+
+啟動 GitLab
+
+    sudo service gitlab start # 或 sudo /etc/init.d/gitlab restart
+
+檢查 GitLab 各個系統狀態
+
+    sudo -u git -H bundle exec rake gitlab:check RAILS_ENV=production
+    訊息檢查說少了這些, 就補上去.
+        sudo -u git -H git config --global user.name  "GitLab"
+        sudo -u git -H git config --global user.email "gitlab@localhost"
+
+設定 Apache2 環境
+
+    sudo apt-get install apache2
+    可見: gitlab-recipes/web-server/apache at master · gitlabhq/gitlab-recipes
+    取得 github.conf: https://github.com/gitlabhq/gitlab-recipes/blob/master/web-server/apache/gitlab.conf
+    cd /tmp/
+    wget https://raw.github.com/gitlabhq/gitlab-recipes/master/web-server/apache/gitlab.conf
+    sudo vim gitlab.conf # 修改 ServerName, ProxyPassReverse, Log 路徑(/var/log/httpd/logs/ => /var/log/apache2/)等等.
+    sudo mv gitlab.conf /etc/apache2/sites-enabled/
+    sudo a2enmod rewrite proxy proxy_http
+    sudo service apache2 restart # 或 sudo /etc/init.d/apache2 restart
+
+重新啟動 GitLab 方式
+
+    sudo /etc/init.d/gitlab restart
+
+到此即安裝完成, 可用下述帳號、密碼登入:
+
+    http://gitlab.domain-name # 連線進入, 預設帳號、密碼如下:
+    login: admin@local.host
+    password: 5iveL!fe
+
+備份、還原
+
+    /home/git/ - 備份全部
+    下述感謝 fetag 提供得資訊:
+        Gitlab 的備份與恢復可以參考：
+        https://github.com/gitlabhq/gitlabhq/blob/master/doc/raketasks/backup_restore.md
+        是直接 bundle 執行 script 打包必要文件為 .tar 檔案，恢復時亦同。
+
+問題除錯檢查
+
+    ssh -vT git@gitlab.domain-name # 測試看看 ssh 是否可以通
+
+問題: 若是用 hosts 設定 假Domain 來作安裝的話, 如果指令(git push -u origin master)遇到下述錯誤:
+
+    Access denied.
+    fatal: The remote end hung up unexpectedly
+
+解法:
+
+    vim /home/git/gitlab-shell/config.yml
+        Debug Log: /home/git/gitlab-shell/gitlab-shell.log , tail -f /var/log/auth.log
+        Debug SSH: ssh -T -v git@gitlab.domain-name
+    翻 /home/git/gitlab-shell/gitlab-shell.log 可以看到錯誤訊息, 若錯誤訊息是 404, 請加上下述:
+
+        $ vim /etc/hosts
+        127.0.0.1  gitlab.domain-name
+
