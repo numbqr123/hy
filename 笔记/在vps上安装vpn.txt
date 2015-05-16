@@ -1,0 +1,72 @@
+CentOs 安装vpn
+
+安装ppp软件 
+yum install ppp -y
+
+安装pptpd
+rpm -ivh http://poptop.sourceforge.net/yum/stable/packages/版本
+
+配置pptpd和ppp 
+vi /etc/ppp/options.pptpd   #把以下选项的注释#去掉
+	name pptpd
+	refuse-pap
+	refuse-chap
+	refuse-mschap
+	require-mschap-v2
+	require-mppe-128
+	ms-dns 8.8.8.8
+	ms-dns 8.8.4.4
+	proxyarp
+	lock
+	nobsdcomp
+	novj
+	novjccomp
+	nologfd
+	
+添加用户 
+vi /etc/ppp/chap-secrets  #打开配置文件
+username1 pptpd passwd1 *   #一行一个用户 
+username2 pptpd passwd2 *   #分别是 用户名 服务  密码 来源ip（这个可以指定网段或者唯一IP）如果不符合全都拒绝掉，*号知道正则表达式的都知道是什么
+
+配置pptpd服务 
+vi /etc/pptpd.conf
+
+把以下行的注释去掉 
+ option /etc/ppp/options.pptpd
+ logwtmp
+ localip 192.168.0.1
+ remoteip 192.168.0.207-217
+ 
+打开内核转发  
+vi /etc/sysctl.conf   
+net.ipv4.ip_forward = 1   #找到这个选项并且改成1
+#保存后执行
+sysctl -p
+
+启动pptpd服务 
+chkconfig pptpd on  #加入开机自动启动
+service pptpd start  #启动pptpd服务
+
+添加防火墙规则 
+iptables -P INPUT ACCEPT #设置全部为允许，以免等下清除防火墙规则时，ssh断开
+iptables  -F
+iptables  -X
+iptables  -Z   #清除防火墙规则结束
+#添加防火墙规则
+iptables -A INPUT -i lo -p all -j ACCEPT
+iptables -A INPUT -p gre -j ACCEPT
+iptables -A INPUT -m state --state RELATED,ESTABLISHED -j ACCEPT
+iptables -A INPUT -p tcp -m tcp --dport 21 -j ACCEPT
+iptables -A INPUT -p tcp -m tcp --dport 22 -j ACCEPT
+iptables -A INPUT -p tcp -m tcp --dport 80 -j ACCEPT
+iptables -A INPUT -p tcp -m tcp --dport 1723 -j ACCEPT
+#设置共享ip，nat表预路由
+iptables -t nat -A POSTROUTING -s 192.168.0.0/24 -o eth0 -j MASQUERADE
+#备份原来的防火墙规则
+cp /etc/sysconfig/iptables /etc/sysconfig/iptables.bak
+#因为命令生成的重启后就会失效，所以我们要把它不保存到配置文件中
+iptables-save > /etc/sysconfig/iptables
+vi /etc/sysconfig/iptables #打开配置文件把filter表中的INPUT链设置DROP如下
+:INPUT DROP[0:0]
+#重启iptables
+service iptables restart
