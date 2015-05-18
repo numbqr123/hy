@@ -1,0 +1,8 @@
+ÔÚ my.ini
+[msyqld]
+--skip-grant-tables 
+
+µÇÂ¼mysql 
+use mysql
+update user set password = password('ĞÂÃÜÂë') where user = 'root';
+flush privileges;
