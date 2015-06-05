@@ -1,0 +1,35 @@
+debian下apt-get isntall 出错提示用apt-get -f install问题
+
+问题：
+
+ 
+
+root@debian:~# apt-get install sendmail-bin
+
+Reading package lists... Done
+
+Building dependency tree       
+
+Reading state information... Done
+
+You might want to run 'apt-get -f install' to correct these:
+
+The following packages have unmet dependencies:
+
+ exim4-base : Depends: exim4-config (>= 4.30) but it is not going to be installed or
+
+                       exim4-config-2
+
+ postfix : Conflicts: mail-transport-agent
+
+ sendmail-bin : Depends: sendmail-base but it is not going to be installed
+
+                Depends: sendmail-cf but it is not going to be installed
+
+                Conflicts: mail-transport-agent
+
+E: Unmet dependencies. Try 'apt-get -f install' with no packages (or specify a solution).
+
+解决方法：
+
+#apt-get --fix-broken install 
