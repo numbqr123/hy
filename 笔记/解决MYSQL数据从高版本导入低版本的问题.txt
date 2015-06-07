@@ -1,0 +1,19 @@
+解决MYSQL数据从高版本导入低版本的问题(转)[@more@]　近日笔者工作中遇到MYSQL数据从高版本导入低版本的问题.这样的问题一般都是高低版本字符集的设置不同.按照以往惯例是把数据用mysqldump命令导出数据后,使用文件编辑器(editplus)修改相应的"DEFAULT CHARSET=gb2312"部分,即可顺利导入低版本的MySQL.但当你遇到大量数据(百万级)时,这种方式就显示得杯水车薪了!那么么办呢?现本人就把自己工作中遇到有关MYSQL数据从高版本导入低版本的解决办法总结一下.
+
+方法一:(适用于当导出的数据量不大时)
+
+step 1:使用mysqldump命令从源服务器导出成SQL文本
+mysqldump -hsrc_dbserver -uroot -p testdb > testdb.sql
+step 2:使用文本编辑器如:editplus,打开testdb.sql,打到需要修改的内容,如:DEFAULT CHARSET=gb2312,修改成与目标服务器相对应的字符集.保存.
+step 3:使用mysql命令将改好后的SQL文本导入目标服务器.OK!
+mysql -hdest_dbserver -uroot -p testdb < testdb.sql
+
+方法二:(适用于当导出的数据量很大时,如万级,百万级数据)
+
+step 1:在mysql命令模式下,使用show variables 命令查看一下目标服务器的字符集设置情况和MYSQL版本
+step 2:使用如下命令:
+mysqldump --compatible=mysql323 -hsrc_dbserver -uroot -p --default-character-set=latin1 testdb > testdb.sql
+
+其中,--compatible=mysql323 是指目标服务器的版本,--default-character-set=latin1 是指目标服务器的字符集设置
+step 3:使用mysql命令将导出的SQL文本导入目标服务器.OK!大功告成!
+mysql -hdest_dbserver -uroot -p testdb < testdb.sql
