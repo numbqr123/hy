@@ -76,7 +76,7 @@ GitLab shell
     cd /home/git
     sudo -u git -H git clone https://github.com/gitlabhq/gitlab-shell.git
     cd gitlab-shell
-    sudo -u git -H git checkout v1.7.4 # 切到正確版本
+    sudo -u git -H git checkout v2.4.0 # 切到正確版本
     sudo -u git -H cp config.yml.example config.yml
     sudo -u git -H editor config.yml # 主要修改 gitlab_url, 改成自己要的 http://domain.com/
     sudo -u git -H ./bin/install # 會依照 config.yml 設定、建目錄、key 等
