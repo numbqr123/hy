@@ -615,3 +615,236 @@ WP7
 开源中国社区(OSChina.net)是工信部 开源软件推进联盟 指定的官方社区
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+在 CentOS 上部署 GitLab (自托管的Git项目仓库)
+
+参考资料
+https://github.com/mattias-ohlsson/gitlab-installer/blob/master/gitlab-install-el6.sh
+
+最近更新
+GitLab已经发布了deb和rpm包，下载地址为：https://www.gitlab.com/downloads/
+
+环境准备
+OS: CentOS 6.3 x86_64
+
+1.初识GitLab
+GitLab是一个利用 Ruby on Rails 开发的开源应用程序，实现一个自托管的Git项目仓库，可通过Web界面进行访问公开的或者私人项目。
+它拥有与Github类似的功能，能够浏览源代码，管理缺陷和注释。可以管理团队对仓库的访问，它非常易于浏览提交过的版本并提供一个文件历史库。团队成员可以利用内置的简单聊天程序(Wall)进行交流。它还提供一个代码片段收集功能可以轻松实现代码复用，便于日后有需要的时候进行查找。
+
+GitLab 要求服务器端采用 Gitolite 搭建，5.0版本以后对于ssh服务，GitLab不再使用 Gitolite ，采用自己开发的 gitlab-shell 来实现。
+
+在GitHub上托管代码，私人项目是需要付费的，并且对于企业而言，还是将Git服务器放在内部要更加安全一些。因此，如果喜欢GitHub这种简洁风格的Git服务器，在本地搭建一个GitLab是一个非常不错的选择。
+另外，如果需要对代码进行Review，推荐使用Gerrit，要复杂一些，但是功能非常强大。
+
+2.安装部署GitLab
+2.1 如果有条件，提供一台全新的Server，仅仅只安装了一些系统的软件包，可以直接使用一键安装的脚本来搭建，非常容易，具体步骤如下：
+
+2.1.1 安装EPEL扩展源
+切换到root用户
+$ sudo -i
+# rpm -ivh http://fr2.rpmfind.net/linux/epel/6/x86_64/epel-release-6-8.noarch.rpm
+
+2.1.2 安装git
+# yum install git
+
+2.1.3 下载gitlab-installer.sh安装脚本
+# git clone https://github.com/mattias-ohlsson/gitlab-installer.git
+
+2.1.4 执行安装脚本
+# cd gitlab-installer/
+# ./gitlab-install-el6.sh
+
+等待脚本执行完毕后，会提示如下信息(比如Server主机名为:heydevops-node-2)：
+01
+	### Done ########################################
+02
+	#
+03
+	# You have your MySQL root password in this file:
+04
+	# /config/database.yml
+05
+	#
+06
+	# Point your browser to:
+07
+	# http://heydevops-node-2 (or: http://[host-ip])
+08
+	# Default admin username: admin@local.host
+09
+	# Default admin password: 5iveL!fe
+10
+	#
+11
+	#################################################
+
+2.1.5 将脚本的Ruby版本指向到ruby-1.9.3-p392
+# vim /home/git/gitlab-shell/bin/gitlab-shell
+1
+	#!/usr/local/rvm/bin/ruby-1.9.3-p392
+
+2.1.6 使用GitLab
+接着，就可以通过 http://[host-ip] ([host-ip]是Server的IP)来访问GitHub了。
+首先，会看到如下所示的登陆界面：
+
+通过上面提示信息内的账号密码登陆，登陆过后首先新增一个Project：
+
+添加Project过后，会有一个配置向导，提供了非常详细的本地Git配置步骤：
+
+在进行这些本地配置之前，首先要在本地生成SSH-Keygen，并将Public Key添加到GitLab中：
+
+# ssh-keygen -t rsa
+# cat .ssh/id_rsa.pub
+
+然后将所查看到的信息，都添加到GitLab的 MyProfile - SSH Key - Add New 中：
+
+接着，就可以再本地按照图片中所示的步骤进行操作并使用GitLab了。
+
+2.2 上面的部署步骤，主要是采用了脚本gitlab-install-el6.sh来实现的，里面其实包含了很多的配置步骤，如果本地不是一个全新的环境，那么我们最好按照以下步骤来进行手动配置：
+
+2.2.1 安装EPEL扩展源
+切换到root用户
+$ sudo -i
+
+# rpm -ivh http://fr2.rpmfind.net/linux/epel/6/x86_64/epel-release-6-8.noarch.rpm
+
+2.2.2 安装git
+# yum install git
+
+2.2.3 安装系统依赖
+# yum -y install patch gcc-c++ readline-devel zlib-devel libffi-devel openssl-devel make autoconf automake libtool bison libxml2-devel libxslt-devel libyaml-devel
+
+2.2.4 安装rvm
+# curl -L get.rvm.io | sudo bash -s stable
+
+# source /etc/profile.d/rvm.sh
+# rvm pkg install libyaml
+# rvm --default use 1.9.3-p392
+# gem install bundler
+
+2.2.5 创建git用户
+# adduser --system --create-home --comment 'GitLab' git
+
+2.2.6 配置gitlab-shell(比如Server主机名为:heydevops-node-2)
+# su - git -c "git clone https://github.com/gitlabhq/gitlab-shell.git"
+# su - git -c "cp gitlab-shell/config.yml.example gitlab-shell/config.yml"
+
+# su - git -c "gitlab-shell/bin/install"
+
+# chmod 600 /home/git/.ssh/authorized_keys
+# chmod 700 /home/git/.ssh
+
+2.2.7 安装Redis
+# yum -y install redis
+# service redis start
+# chkconfig redis on
+
+2.2.8 安装配置MySQL
+# yum install -y mysql-server
+# chkconfig mysqld on
+
+# echo "CREATE DATABASE IF NOT EXISTS gitlabhq_production DEFAULT CHARACTER SET 'utf8' COLLATE 'utf8_unicode_ci';" | mysql -u root
+# echo "UPDATE mysql.user SET Password=PASSWORD('gitlab') WHERE User='root'; FLUSH PRIVILEGES;" | mysql -u root
+
+2.2.9 安装配置GitLab
+# su - git -c "git clone https://github.com/gitlabhq/gitlabhq.git gitlab"
+# su - git -c "cd gitlab;git checkout 5-0-stable"
+
+# cd /home/git/gitlab
+# su git -c "cp config/gitlab.yml.example config/gitlab.yml"
+# sed -i "s/ host: localhost/ host: heydevops-node-2/g" config/gitlab.yml
+# sed -i "s/from: gitlab@localhost/from: gitlab@heydevops-node-2/g" config/gitlab.yml
+
+2.2.10 创建Unicorn配置文件
+# su git -c "cp config/unicorn.rb.example config/unicorn.rb"
+
+# sed -i "s/^listen/#listen/g" /home/git/gitlab/config/unicorn.rb
+# sed -i "s/#listen \"127.0.0.1:8080\"/listen \"127.0.0.1:3000\"/g" /home/git/gitlab/config/unicorn.rb
+
+# su git -c "cp config/database.yml.mysql config/database.yml"
+# sed -i "s/secure password/gitlab/g" config/database.yml
+
+# su git -c 'git config --global user.name "GitLab"'
+# su git -c 'git config --global user.email "gitlab@$GL_HOSTNAME"'
+
+2.2.10 安装Gems
+# yum -y install libicu-devel
+# gem install charlock_holmes --version '0.6.9'
+
+# yum -y install mysql-devel
+# su git -c "bundle install --deployment --without development test postgres"
+
+# export force=yes
+# su git -c "bundle exec rake gitlab:setup RAILS_ENV=production"
+
+# curl --output /etc/init.d/gitlab https://raw.github.com/gitlabhq/gitlab-recipes/master/init.d/gitlab-centos
+# chmod +x /etc/init.d/gitlab
+
+# sed -i "17 a source /etc/profile.d/rvm.sh\nrvm use 1.9.3-p392" /etc/init.d/gitlab
+
+# chkconfig gitlab on
+# service gitlab start
+
+2.2.11 安装Apache
+# yum -y install httpd
+# chkconfig httpd on
+
+# vim /etc/httpd/conf.d/gitlab.conf
+1
+	ProxyPass / http://127.0.0.1:3000/
+2
+	ProxyPassReverse / http://127.0.0.1:3000/
+3
+	ProxyPreserveHost On
+
+# setenforce 0
+
+# service httpd start
+
+2.2.12 停止iptables
+# service iptables stop
+
+2.2.13 修复gitlab-shell
+# vim /home/git/gitlab-shell/bin/gitlab-shell
+将脚本的Ruby版本指向到ruby-1.9.3-p392
+1
+	#!/usr/local/rvm/bin/ruby-1.9.3-p392
+
+2.2.14 完成，剩下的GitLab使用步骤与2.1.6相同。
+
+
+
