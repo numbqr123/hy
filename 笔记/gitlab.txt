@@ -226,7 +226,7 @@ GitLab DB 設定
         127.0.0.1  gitlab.domain-name
 		
 		
-		
+		bundle exec rails s -e producntionser
 		
 		
 		
