@@ -847,4 +847,56 @@ $ sudo -i
 2.2.14 完成，剩下的GitLab使用步骤与2.1.6相同。
 
 
+curl -L https://get.rvm.io | bash -s stable --ruby
+
+
+
+Ruby更改gem source
+
+    博客分类： ruby 
+
+ 
+
+ 
+很多时候，在安装gem的过程中会出现找不到资源的error，我们需要从另外一个gem服务器下载安装。
+
+通过gem sources命令配置源，或通过修改Gemfile中的source语句可以实现。
+
+常用的源
+http://rubygems.org/
+http://gems.github.com
+http://gems.rubyforge.org
+http://ruby.taobao.org 国内应该找个比较靠谱了，适合安装大多数常见的gem
+
+显示当前使用的sources
+gem sources
+
+添加一个source
+gem sources -a url地址
+
+删除一个source
+gem sources -r url地址
+
+更新source cache
+gem sources -u
+
+ruby的安装与切换
+
+列出已知的ruby版本
+rvm list known
+安装一个ruby版本
+rvm install 1.9.3
+这里安装了最新的1.9.3, rvm list known列表里面的都可以拿来安装。
+
+使用一个ruby版本
+rvm use 1.9.3
+如果想设置为默认版本，可以这样
+
+rvm use 1.9.3 --default 
+查询已经安装的ruby
+rvm list
+卸载一个已安装版本
+rvm remove 1.9.2
+
+
 
