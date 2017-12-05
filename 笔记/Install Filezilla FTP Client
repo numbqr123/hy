@@ -1,0 +1,16 @@
+filezilla centos7
+
+
+Install Epel Repo CentOS 7
+
+We can Install Epel Repository with yum command, Open Linux Terminal and type
+
+yum -y install epel-release
+Install CentOS Epel Repo
+
+
+Install Filezilla FTP Client
+
+Now Lets Install FileZilla for Centos 7
+
+yum -y install filezilla
